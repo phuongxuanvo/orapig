@@ -1,0 +1,62 @@
+/*
+Author: Asi Behar for revver.com and rst2a.com
+Date: 2007/12/01
+Version: 0.2
+Copyright: This stylesheet has been placed in the public domain - free to edit and use for all uses.
+*/
+
+@import url(html4css1.css);
+
+html, body, div, span, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, a, dl, dt, dd, ol, ul, li, table, tbody, tfoot, thead, tr, th, td {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	outline: 0;
+	font-weight: inherit;
+	font-style: inherit;
+	font-size: 100%;
+	font-family: Arial, Helvetica, sans-serif;
+	vertical-align: baseline;
+	background: transparent;
+    line-height: 1.2em;
+}
+
+body {line-height: 1; color: black; background: white; padding: 10px;}
+ol, ul { list-style: disc; }
+a { text-decoration: none; color: #000; font-size: 0.9em; }
+a:hover { text-decoration: none; font-size: 0.9em; color: #4e93b0; }
+
+table { border-collapse: collapse; border-spacing: 1; }
+caption, th, td { text-align: left; font-weight: normal;}
+
+.document h1.title { font-size: 1.8em; margin: .5em 0em; font-weight: bold; text-align: left; border-bottom: 1px solid #333; font-variant: small-caps;}
+.document .section h1 { font-size: 1.3em; margin: 1.3em 0 .5em 0; font-weight: bold; text-align: left; font-variant: small-caps;}
+.document .section .section h2 { font-weight: bold; font-size: 1.15em; }
+.document .section .section .section h3 { font-weight: bold;}
+.document p { margin: 0.8em 0.2em 0.8em 0.8em; font-size: 1em; }
+.document p a { color: #344c7c;  font-size: 1em !important;}
+
+.document .section .section { margin-left: 1.2em; margin-top: 1.2em}
+.document .section .section .section { margin: 1.1em 0 0 1.3em;}
+
+.document .section ul, .document .section ol  { margin-left: 3em; font-size: 0.94em; }
+.document .section ul li, .document .section ol li { margin: 3px 0; }
+.document ul.auto-toc, .document .contents ul { margin-left: 18px; list-style: none; }
+
+.document .section table { border: 3px solid #333; width: 100%;}
+.document .section table thead tr { background-color: #f3f3f3;}
+.document .section table thead tr th { font-weight: bold; text-align: left; padding: 0.3em 0.3em; margin: 0; border: 1px solid #666;  border-bottom: 2px solid #e3e3e3;}
+.document .section table tbody tr td { font-size: 0.85em; text-align: left; padding: 0.3em 0.3em; margin: 0; border: 1px solid #666;}
+.document .section table tbody tr td p { margin: 0; font-size: 1em;}
+.document .section table tbody tr td ul { margin: 0.3em 0.8em; font-size: 1em;}
+
+.document pre { border: 1px solid #e3e3e3; background-color: #f3f3f3; padding: 6px; font-family: monospace;}
+.document span.pre { font-family: monospace; background-color: transparent; font-size: 1.2em; font-weight: bold; color: #4488c2; }
+.document tt { background-color: transparent;}
+    
+    
+.document div.contents { background-color: #f3f3f3; border: 1px solid #e3e3e3; float:right; margin: 0 0 10px 20px; padding: 10px 20px 2px 20px; }
+.document div.contents a { color: #344c7c;}
+.document div.contents a:hover { color: #4e93b0;}
+.document div.contents .topic-title { margin-bottom: 8px; }
+.document div.contents .topic-title a {font-size: 1.2em; color: #000;}

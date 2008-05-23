@@ -7,6 +7,13 @@ Copyright: This stylesheet has been placed in the public domain - free to edit a
 
 @import url(html4css1.css);
 
+pre.literal-block {
+  margin-left: 1em ;
+  margin-right: 1em ;
+  line-height: 95% ;
+  background-color: #eeeeee }
+
+
 html, body, div, span, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, a, dl, dt, dd, ol, ul, li, table, tbody, tfoot, thead, tr, th, td {
 	margin: 0;
 	padding: 0;
@@ -18,7 +25,7 @@ html, body, div, span, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, a, dl, dt,
 	font-family: Arial, Helvetica, sans-serif;
 	vertical-align: baseline;
 	background: transparent;
-    line-height: 1.2em;
+    line-height: 1.1em;
 }
 
 body {line-height: 1; color: black; background: white; padding: 10px;}

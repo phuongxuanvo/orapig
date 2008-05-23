@@ -3,7 +3,7 @@
 OraPIG -- Oracle Python Interface Generator
 ===========================================
 
-TODO: for this doc, rearrange sections, label as beta version, note TODO items.
+.. TODO: for this doc, rearrange sections, label as beta version, note TODO items.
 
 OraPIG creates Python interfaces for PL/SQL packages.
 You can generate interfaces for your own packages or for the
@@ -50,7 +50,7 @@ generated class.  Each procedure and function has its
 own documentation, and there is a docstring comment
 for the class as well.  There is not predefined format
 for the docstrings -- text is copied "as is".
-I'm looking at perhaps using reStructured Text (reST) in
+We're looking at perhaps using reStructured Text (reST) in
 the docstring comments, but for now it's free-form.
 
 Put the package docstring comment between the "create"
@@ -72,7 +72,7 @@ Committing Transactions
 
 OraPIG does not commit any transaction.  There is an experimental
 autocommit mode for use in writing application servers that
-do not keep state across invocations.
+do not keep state across invocations.  Don't use it.
 
 Vectorized Procedure Calls
 --------------------------
@@ -80,8 +80,7 @@ Vectorized Procedure Calls
 Frequently you will need to repeatedly call a stored procedure
 with different values.::
 
-    TODO: FIX NAME,VALUE
-    for x in newProperties:        # call setproperty for all items
+    for valuex in propertyList:          # call setproperty for all items
         mypkg.setproperty(name, value)   # in the list
 
 This can be slow, since you are making a round trip call
@@ -177,8 +176,11 @@ Here are the type mappings::
     VARCHAR2      STRING
     TIMESTAMP     TIMESTAMP
 
-TODO: types in src, let's confirm these and make sure they are covered
-in test cases::
+(datatype mapping is an ongoing project... please let us know if
+you have any problems, ideas, suggestions, questions, etc.)
+
+.. TODO: types in src, let's confirm these and make sure they are covered
+   in test cases::
 
         'RAW'                   :'BINARY',
         'BFILE'                 :'BFILE',
@@ -190,8 +192,8 @@ in test cases::
         'unhandled_NCLOB'       :'NCLOB',
         'unhandled_OBJECT'      :'OBJECT',
 
-TODO: these are the errors from running on sys pkgs. let's test
-and either fix or document that they don't work::
+.. TODO: these are the errors from running on sys pkgs. let's test
+   and either fix or document that they don't work::
 
     KeyError: 'argtype'
     KeyError: 'BINARY_DOUBLE'
@@ -218,14 +220,14 @@ Arrays
 PL/SQL supports an array data type.  This can be used to enhance
 efficiency or better reflect your application's logical interface.
 
-TODO: more verbiage on arrays
+.. TODO: more verbiage on arrays
 
 Example: keywords
 
 Suppose you have a package that manipulates keywords that has a *set_keyword*
-procedure::
+procedure.
 
-    TODO: show procedure body
+.. TODO: show procedure body
 
 To set a number of keywords on an identifier, you could
 repeatedly call the procedure::
@@ -242,13 +244,13 @@ using the vectorized form of the procedure::
 which would result in multiple invocations of the procedure in
 a single call to the database.
 
-Finally, you could receive the keywords as a PL/SQL array::
+..    TODO: show procedure body following nex para
 
-    TODO: show procedure body
-
-And pass the procedure a list of the keywords you wish to set::
+Finally, you could receive the keywords as a PL/SQL array
+and pass the procedure a list of the keywords you wish to set::
 
     k.set_keywords(id, ['blue','cold','spooky'])
+
 
 Extending OraPIG
 ----------------
@@ -275,26 +277,26 @@ The command line options are::
 --output=OUTPUT, -O OUTPUT   output file, defaults to stdout
 --doc=DOCFILE                output document to this file (not implemented)
 --lang=LANG                  language binding (currently wishful thinking)
---pass=PASS, -P PASS         database password
+--pass=PASS, -P PASS         database password (not implemented)
 --dump                       dump parsed data (for debugging)
 --sys                        the connection is a sys account
-
-TODO: verify these match code
 
 Platform Considerations
 -----------------------
 
-I've run this primarily on Linux and Mac.  There's no reason it
-shouldn't run in any other environment (e.g. Windows) where cx_Oracle
-is supported.  If you can verify a platform, please let me know and
-I'll update it here.
+We've run this primarily on Linux.  There's no reason it
+shouldn't run in any other environment (e.g. Windows, Mac) where cx_Oracle
+is supported.  If you can verify a platform, please let us know and
+we'll update it here.
 
 Administrivia
 -------------
-:Lastest Version:
+:Version:
     1.0
 :Download:
     http://code.google.com/p/orapig
+:Documentation:
+    http://markharrison.net/orapig
 :Authors:
     Mark Harrison (mh@pixar.com)
 
@@ -313,14 +315,14 @@ Administrivia
 :Motto:
     "There's a Snake in my Oracle!"
 
+This has been tested with Python 2.3 and 2.4, and Oracle 10.2.1.
+
 Thanks
 ------
 
 - to Anthony Tuininga (Mr. cx_Oracle) for doing such a fine job on cx_Oracle.
 - to colleagues and early adopters (victims) Stas Bondarenko, Josh
   Minor, and Ralph Hill.
-- to Joy Sikorski for the OraPIG logo.  It came from her lovely and
-  inspiring book *How to Draw a Clam*.  More at www.joysikorski.com.
 - to the smart and ever-helpful denizens of cx-oracle-users
   and comp.databases.oracle.misc.
 
@@ -332,8 +334,7 @@ TODO
 - Generate reST documentation for the package.
 - Ability to generate system package interfaces without logging
   in as sys.
-- gen and distribute:  import orapig.10g.db_output
-
+- gen and distribute?:  import orapig.10g.db_output
 
 Generating Package Documentation
 --------------------------------
@@ -341,7 +342,7 @@ Generating Package Documentation
 If you specify the --doc= option on the command line, the collected
 doc strings will be written to this file in reST format.
 
-TODO: this is not done yet
+Note: this is not done yet
 
 System Packages
 ---------------
@@ -353,12 +354,12 @@ DBMS_OUTPUT, do something like the following::
 
     orapig --sys --conn=sys/tiger -o dbms_output.py dbms_output
 
-TODO: put some sample code here.
+.. TODO: put some sample code here.
 
-TODO: need to test dbms_output OUT parms.  They may not be passed
-back as expected to the calling routine.
+.. TODO: need to test dbms_output OUT parms.  They may not be passed
+   back as expected to the calling routine.
 
-TODO: pre-generate and ship as part of the distribution?
+.. TODO: pre-generate and ship as part of the distribution?
 
 Examples
 --------
@@ -401,40 +402,3 @@ FAQs
 4.  I can't get INOUT to work!
 
     Oracle spells INOUT as "IN OUT", two words.
-
-Thus ends the doc, below are random notes
-=============================================================
-
-book stuff
-==========
-
-table ideas
------------
-
-tables::
-
- create table stuff(x varchar2(20));
- create table stuff(colors varchar2(20));
- create table colors(name varchar2(20));
- create table colormap(name varchar2(20), red number, blue number, green number);
- create table places(city varchar2(20), altitude number, population number);
-
-r,g,b = getcolors('blue')
-
-setting up oracle
------------------
-
-what you need:
-
--  oracle xe
--  cx_Oracle
--  sql developer
-
-
-how to write your package
-
-        as normal
-
-        comment with --+
-
-don't need to know special types

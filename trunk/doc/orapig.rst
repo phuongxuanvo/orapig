@@ -1,4 +1,4 @@
-.. image:: orapig.gif
+.. image:: orapig.png
 
 OraPIG -- Oracle Python Interface Generator
 ===========================================

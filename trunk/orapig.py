@@ -45,11 +45,13 @@ class Trans:
     def getprocedures(self,package_name):
         """get a list of all public procedures and functions in a package"""
         self.curs.execute("""
-            select procedure_name
-                from user_procedures
-                where object_type='PACKAGE'
-                  and object_name=:package_name
-                  and procedure_name is not NULL
+            select up.procedure_name
+                from user_procedures up, user_objects uo
+                where up.object_name = uo.object_name
+                  and uo.object_type='PACKAGE'
+                  and up.object_name=:package_name
+                  and up.procedure_name is not NULL
+                  order by up.procedure_name
                 """,package_name=package_name)
         rv=[i[0] for i in self.curs]
         return rv
@@ -151,7 +153,7 @@ class Trans:
     def docbeautify(self,s,lev):
         """beautifully indent a block of text for a doc string"""
         spaces='    '*lev
-        s='\n'.join((spaces + x).rstrip() for x in s.splitlines())
+        s='\n'.join([(spaces + x).rstrip() for x in s.splitlines()])
         return s
 
     def getdoc(self,pkgname):
@@ -166,7 +168,7 @@ class Trans:
         t+='\n'
         t+='*** This is a generated class. DO NOT MODIFY! ***\n'
         #t+=' '.join(sys.argv)
-        t+='\n'
+        #t+='\n'
         t+='\n'
         self.curs.execute("""select text from user_source where name=:1
                              and type='PACKAGE' order by line""", [pkgname])
@@ -355,8 +357,8 @@ class PyTrans(Trans):
         lprocname=procname.lower()
         parms=self.getparms(procname, package_name)
         arraytype=self.getarrayparms(procname,package_name)
-        if self.memberdocs.has_key(procname):
-            comment=self.memberdocs[procname]
+        if self.memberdocs.has_key(lprocname):
+            comment=self.memberdocs[lprocname]
         else:
             comment= "        (No doc string for this procedure)\n"
             comment+="        (orapig --helpfmt for more info )" 
@@ -386,8 +388,8 @@ class PyTrans(Trans):
         if self.hasoutputparms(procname,package_name):
             raise_exception ="        # We don't support out or in/out parameters\n"
             raise_exception+="        raise Exception('Out array parameters not supported')\n"
-        if self.memberdocs.has_key(procname):
-            comment=self.memberdocs[procname]
+        if self.memberdocs.has_key(lprocname):
+            comment=self.memberdocs[lprocname]
         else:
             comment= "        (No doc string for this procedure)\n"
             comment+="        (orapig --helpfmt for more info )" 
@@ -405,7 +407,7 @@ class PyTrans(Trans):
                              (i,self.typemap[arrayindices[i]],i-1)
             else:
                 param_loop+="            dict['%d']=parmlist[i][%d]\n" % (i, i-1)
-        decl=pytmpl[procv0]%(lprocname+"_v",comment,raise_exception,param_loop,package_name,procname,plist2)
+        decl=pytmpl[procv0]%(lprocname+"_V",comment,raise_exception,param_loop,package_name,procname,plist2)
         self.println(decl)
 
     def doprocs(self,package_name):
@@ -460,7 +462,7 @@ class PyTrans(Trans):
 
 def main():
     """main program"""
-    
+
     p = optparse.OptionParser(usage="usage: %prog options pkg...")
     p.add_option("-C","--conn",action="store",type="string",dest="conn",
                  help="Database connection string")
@@ -481,7 +483,7 @@ def main():
     if not (opts.conn and args):
         p.print_help()
         sys.exit(1)
-    
+
     if opts.sys:
         conn = cx_Oracle.connect(opts.conn,mode=cx_Oracle.SYSDBA)
     else:

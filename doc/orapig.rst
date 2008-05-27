@@ -323,6 +323,7 @@ Thanks
 - to Anthony Tuininga (Mr. cx_Oracle) for doing such a fine job on cx_Oracle.
 - to colleagues and early adopters (victims) Stas Bondarenko, Josh
   Minor, and Ralph Hill.
+- to Mark Roddy for beta testing, patches, and password handling.
 - to the smart and ever-helpful denizens of cx-oracle-users
   and comp.databases.oracle.misc.
 
@@ -342,7 +343,7 @@ Generating Package Documentation
 If you specify the --doc= option on the command line, the collected
 doc strings will be written to this file in reST format.
 
-Note: this is not done yet
+Note: this is not done yet.
 
 System Packages
 ---------------

@@ -20,9 +20,10 @@ tmplEnums=(
     file1,	# end of file
     class0,	# class
     func0,	# function
+    func1,	# function returning unsupported datatype
     proc0,	# procedure
     procv0	# procedure, vectorizing form
-    ) = range(1,7)
+    ) = range(1,8)
 
 #-----------------------------------------------------------------------
 #  Trans -- translator base class
@@ -306,6 +307,15 @@ pytmpl[func0]="""\
             conn.commit()
         return rv
 """
+pytmpl[func1]="""\
+    #------------------------------------------------------
+    def %s(self%s):
+        \"\"\"
+%s
+        \"\"\"
+%s
+        raise TypeError("Unsupported Oracle Data Type: %s") 
+"""
 pytmpl[file0] = """\
 import cx_Oracle
 """
@@ -335,6 +345,7 @@ class PyTrans(Trans):
         'unhandled_OBJECT'	:'OBJECT',
         'VARCHAR2'		:'STRING',
         'TIMESTAMP'		:'TIMESTAMP',
+        'ROWID'			:'ROWID',
         'CURSOR'		:'CURSOR'
     }
 
@@ -344,7 +355,10 @@ class PyTrans(Trans):
     def getpyfunctype(self,objname):
         """get the python (cx_Oracle) data type of a parm or rc"""
         dt=self.getfunctype(objname)
-        return 'cx_Oracle.'+self.typemap[dt]
+        if self.typemap.has_key(dt):
+            return (dt, 'cx_Oracle.'+self.typemap[dt])
+        else:
+            return (dt,None)
 
     def dofile(self,package_names):
         """process a file"""
@@ -424,7 +438,7 @@ class PyTrans(Trans):
     def dofunc1(self,funcname, package_name):
         """process one func"""
         lfuncname=funcname.lower()
-        retype=self.getpyfunctype(funcname)
+        oraretype,retype=self.getpyfunctype(funcname)
         parms=self.getparms(funcname,package_name)
         arraytype=self.getarrayparms(funcname,package_name)
         if self.memberdocs.has_key(lfuncname):
@@ -443,8 +457,12 @@ class PyTrans(Trans):
             for parm in parms:
                 alist+="        %s=self.curs.arrayvar(cx_Oracle.%s, %s)" % \
                         (parm,self.typemap[arraytype[parm]],parm)
-        decl=pytmpl[func0]%(lfuncname,plist1,comment,alist,
+        if retype:
+            decl=pytmpl[func0]%(lfuncname,plist1,comment,alist,
                             package_name,funcname,retype,plist2)
+        else:
+            decl=pytmpl[func1]%(lfuncname,plist1,comment,alist,oraretype)
+            
         self.println(decl)
 
     def doclass(self,package_name):

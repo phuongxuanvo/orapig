@@ -162,7 +162,7 @@ class Trans:
         """build up a doc string for this class and its members"""
         self.memberdocs={}
         decl=re.compile(r'^[\s]+(function|procedure)[\s\+]([^\s(;]+)')
-        asline=re.compile(r'^[\s]*([Aa][Ss])[\s]*$')
+        asline=re.compile(r'^[\s]*(AS|IS)[\s]*$',re.IGNORECASE)
         blab=re.compile(r'^[\s]*[-][-][+][\s](.*)')
         t=''
         t+='class %s -- interface for package %s.%s\n'%\

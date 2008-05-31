@@ -128,7 +128,7 @@ associated reference cursor.  You can then use the returned cursor
 like this::
 
     curs = mypkg.myfunc(x)
-    for for in curs:
+    for row in curs:
         print row
 
 This can be much more efficient than executing a query and

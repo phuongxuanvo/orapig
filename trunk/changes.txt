@@ -1,0 +1,13 @@
+2008/05/19
+
+    moved from internal repository, cleaned up, renamed as orapig
+
+    *** release 1.0.0
+
+    (skipping some other history)
+
+2008/05/30
+
+   now supports IS and AS in declarations
+
+   *** released 1.0.4

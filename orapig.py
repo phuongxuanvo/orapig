@@ -44,117 +44,102 @@ class Trans:
         """print a line to stderr"""
         sys.stderr.write(line+'\n')
 
-    def getprocedures(self,package_name):
-        """get all public procedures and functions in a package"""
+    def getprocedures(self,owner,package_name):
+        """get a list of all public procedures and functions in a package"""
         self.curs.execute("""
-            select up.procedure_name
-                from user_procedures up, user_objects uo
-                where up.object_name = uo.object_name
-                  and uo.object_type='PACKAGE'
-                  and up.object_name=:package_name
-                  and up.procedure_name is not NULL
-                  order by up.procedure_name
-                """,package_name=package_name)
+            select ap.procedure_name
+                from all_procedures ap, all_objects ao
+                where ap.object_name = ao.object_name
+                  and ao.object_type='PACKAGE'
+                  and ap.object_name=:package_name
+                  and ap.procedure_name is not NULL
+                  and ap.owner = :owner
+                  and ao.owner = :owner
+                  order by ap.procedure_name
+                """,package_name=package_name,owner=owner)
         rv=[i[0] for i in self.curs]
         return rv
 
-    def getobjs(self,type):
-        """get all objects in this schema of a particular type"""
-        rv=[]
-        self.curs.execute("""
-            select object_name
-                from user_procedures
-                where object_type=:type
-                order by object_name""",type=type)
-        for i in self.curs:
-            rv.append(i[0])
-        return rv
-
-    def isfunc(self,objname,package_name):
+    def isfunc(self,owner,objname,package_name):
         """is this object a function?"""
         self.curs.execute("""
             select count(data_type)
-              from user_arguments
+              from all_arguments
               where object_name=:objname
+              and owner=:owner
               and data_type is not null
               and package_name=:package_name
               and position=0
               and argument_name is null""",
-            objname=objname,package_name=package_name)
+            objname=objname,package_name=package_name,owner=owner)
         return_types=self.curs.fetchone()[0]
         return return_types
 
-    def getparms(self,objname,package_name):
+    def getparms(self,owner,objname,package_name):
         """get the parameter list for a procedure"""
         rv=[]
         self.curs.execute("""
             select argument_name
-              from user_arguments
+              from all_arguments
               where object_name=:objname
+                and owner=:owner
                 and argument_name is not null
                 and package_name=:package_name
-              order by position""",
-                              objname=objname,package_name=package_name)
+              order by position""",objname=objname,package_name=package_name,owner=owner)
         rv=[i[0].lower() for i in self.curs]
         return rv
 
-    def getarrayparms(self,objname,package_name):
+    def getarrayparms(self,owner,objname,package_name):
         """get the list of parameters of array type"""
         rv={}
         self.curs.execute("""
             select a.argument_name, b.data_type
-            from user_arguments a, user_arguments b
+            from all_arguments a, all_arguments b
             where a.object_name=:objname and b.object_name=:objname
                and a.position=b.position
                and a.data_type='PL/SQL TABLE'
                and b.data_type!='PL/SQL TABLE'
+               and a.owner=:owner
+               and b.owner=:owner
                and a.package_name=:package_name
-               and b.package_name=:package_name""",
-                              objname=objname,package_name=package_name)
+               and b.package_name=:package_name""",objname=objname,package_name=package_name,owner=owner)
         for row in self.curs:
             rv[row[0].lower()]=row[1]
         return rv
 
-    def getarrayindices(self,objname,package_name):
+    def getarrayindices(self,owner,objname,package_name):
         """get the list of parameters of array type"""
         rv={}
         self.curs.execute("""
             select a.position, b.data_type
-            from user_arguments a, user_arguments b
+            from all_arguments a, all_arguments b
             where a.object_name=:objname and b.object_name=:objname
                and a.position=b.position
                and a.data_type='PL/SQL TABLE'
                and b.data_type!='PL/SQL TABLE'
+               and a.owner=:owner
+               and b.owner=:owner
                and a.package_name=:package_name
-               and b.package_name=:package_name""",
-                      objname=objname.upper(),package_name=package_name)
+               and b.package_name=:package_name""",objname=objname.upper(),package_name=package_name,owner=owner)
         for row in self.curs:
             rv[row[0]] = row[1]
         return rv
 
-    def hasoutputparms(self,objname,package_name):
+    def hasoutputparms(self,owner,objname,package_name):
         """Tell if a procedure has array out or in out parameters"""
         result = False
         self.curs.execute("""
             select count(argument_name)
-            from user_arguments
+            from all_arguments
             where object_name=:objname
+               and owner=:owner
                and data_type='PL/SQL TABLE'
                and (in_out='OUT' or in_out='IN/OUT')
-               and package_name=:package_name""",
-                      objname=objname.upper(),package_name=package_name)
+               and package_name=:package_name""",objname=objname.upper(),package_name=package_name,owner=owner)
         for row in self.curs:
             if row[0] > 0:
                 return True
         return False
-
-    def pkgexists(self,pkgname):
-        """tell if a package exists"""
-        self.curs.execute("""select count(*) from user_objects
-                        where object_name=:1
-                        and object_type='PACKAGE'""",[pkgname.upper()])
-        x=self.curs.fetchone()[0]
-        return x
 
     def docbeautify(self,s,lev):
         """beautifully indent a block of text for a doc string"""
@@ -162,23 +147,24 @@ class Trans:
         s='\n'.join([(spaces + x).rstrip() for x in s.splitlines()])
         return s
 
-    def getdoc(self,pkgname):
+    def getdoc(self,synonym, owner, pkgname):
         """build up a doc string for this class and its members"""
         self.memberdocs={}
         decl=re.compile(r'^[\s]+(function|procedure)[\s\+]([^\s(;]+)')
         asline=re.compile(r'^[\s]*(AS|IS)[\s]*$',re.IGNORECASE)
         blab=re.compile(r'^[\s]*[-][-][+][\s](.*)')
         t=''
-        t+='class %s -- interface for package %s.%s\n'%\
-             (pkgname.capitalize(),self.conn.username.upper(),pkgname)
+        t+='class %s -- interface for package %s%s.%s\n'%\
+             ((synonym or pkgname).capitalize(),
+              synonym and "(synonym) " or "",
+              self.conn.username.upper(),synonym or pkgname)
         t+='\n'
         t+='*** This is a generated class. DO NOT MODIFY! ***\n'
         #t+=' '.join(sys.argv)
         #t+='\n'
         t+='\n'
-        self.curs.execute("""select text from user_source where name=:1
-                             and type='PACKAGE' order by line""",
-                                                              [pkgname])
+        self.curs.execute("""select text from all_source where name=:name
+                             and type='PACKAGE' and owner=:owner order by line""", name=pkgname,owner=owner)
 
         # first, get the package docs
         for r in self.curs:
@@ -212,25 +198,27 @@ class Trans:
         t=self.docbeautify(t,1)
         return t
 
-    def getfunctype(self,objname):
+    def getfunctype(self,owner,objname):
         """get the return type of a function"""
         self.curs.execute("""
             select data_type
-              from user_arguments
+              from all_arguments
               where object_name=:objname
-                and argument_name is null""",objname=objname)
+                and owner=:owner
+                and argument_name is null""",objname=objname,owner=owner)
         dt=self.curs.fetchone()[0]
         return dt
 
-    def getparmtype(self,pkgname,procname,parmname):
+    def getparmtype(self,owner,pkgname,procname,parmname):
         """get a parameter type"""
         parmname=parmname.upper()
         self.curs.execute("""
             select data_type
-              from user_arguments
+              from all_arguments
               where package_name=:pkgname and object_name=:procname
+                and owner=:owner
                 and argument_name=:parmname""",
-                pkgname=pkgname,procname=procname,parmname=parmname)
+                pkgname=pkgname,procname=procname,parmname=parmname,owner=owner)
 
         r=self.curs.fetchone()
         dt=r[0]
@@ -295,8 +283,7 @@ pytmpl[procv0]="""\
             dict = {}
 %s
             arguments.append(dict)
-        result = self.curs.executemany(
-                 "begin %s.%s(%s); end;", arguments)
+        result = self.curs.executemany("begin %s.%s(%s); end;", arguments)
         if self.autocommit:
             conn.commit()
         return result
@@ -358,9 +345,9 @@ class PyTrans(Trans):
     def __init__(self,conn,output):
         Trans.__init__(self,conn,output)
 
-    def getpyfunctype(self,objname):
+    def getpyfunctype(self,owner,objname):
         """get the python (cx_Oracle) data type of a parm or rc"""
-        dt=self.getfunctype(objname)
+        dt=self.getfunctype(owner,objname)
         if self.typemap.has_key(dt):
             return (dt, 'cx_Oracle.'+self.typemap[dt])
         else:
@@ -373,16 +360,16 @@ class PyTrans(Trans):
             self.doclass(p.upper())
         self.println(pytmpl[file1])
 
-    def doproc1(self,procname,package_name):
+    def doproc1(self,owner,procname,package_name):
         """process one procedure, normal version"""
         lprocname=procname.lower()
-        parms=self.getparms(procname, package_name)
-        arraytype=self.getarrayparms(procname,package_name)
+        parms=self.getparms(owner,procname, package_name)
+        arraytype=self.getarrayparms(owner,procname,package_name)
         if self.memberdocs.has_key(lprocname):
             comment=self.memberdocs[lprocname]
         else:
             comment= "        (No doc string for this procedure)\n"
-            comment+="        (see orapig docs for how to do this)"
+            comment+="        (orapig --helpfmt for more info )"
         if len(parms)==0:
             plist1=''
             plist2=''
@@ -392,32 +379,29 @@ class PyTrans(Trans):
         alist=""
         if len(arraytype) > 0:
             for parm in arraytype.keys():
-                alist+="        "
-                alist+="%s=self.curs.arrayvar(cx_Oracle.%s, %s)\n" % \
+                alist+="        %s=self.curs.arrayvar(cx_Oracle.%s, %s)\n" % \
                         (parm,self.typemap[arraytype[parm]],parm)
         decl=\
-          pytmpl[proc0]%(lprocname,plist1,comment,alist,package_name,
-                                                        procname,plist2)
+          pytmpl[proc0]%(lprocname,plist1,comment,alist,package_name,procname,plist2)
         self.println(decl)
 
-    def doprocv(self,procname,package_name):
+    def doprocv(self,owner,procname,package_name):
         """process one procedure, vectorized version"""
         #TODO: should we not generate this if there's an out parm?
         #TODO: or have it generate a warning?
         lprocname=procname.lower()
-        parms=self.getparms(procname, package_name)
-        arrayindices=self.getarrayindices(procname,package_name)
+        parms=self.getparms(owner,procname, package_name)
+        arrayindices=self.getarrayindices(owner,procname,package_name)
         raise_exception = ""
-        if self.hasoutputparms(procname,package_name):
+        if self.hasoutputparms(owner,procname,package_name):
             raise_exception ="        # We don't support out or in/out parameters\n"
-            raise_exception ="        # We don't support out or in/out parameters\n"
-            raise_exception+="        raise Exception('Out array parameters not supported')\n"
+            raise_exception+="        raise NotImplementedError('Out array parameters not supported')\n"
         if self.memberdocs.has_key(lprocname):
             comment=self.memberdocs[lprocname]
         else:
             comment= "        (No doc string for this procedure)\n"
-            comment+="        (see orapig docs for how to do this)"
-        comment+='\n        (autogenerated vectorized _V procedure)'
+            comment+="        (orapig --helpfmt for more info )"
+        comment+='\n        (this is the autogenerated vectorized _V procedure)'
         comment+='\n        (dont use it if you have out parms)'
         nparms=len(parms)
         plist2=""
@@ -430,33 +414,31 @@ class PyTrans(Trans):
                 param_loop+="            dict['%d']=self.curs.arrayvar(cx_Oracle.%s, parmlist[i][%d])\n" % \
                              (i,self.typemap[arrayindices[i]],i-1)
             else:
-                param_loop+="            dict['%d']=parmlist[i][%d]\n"%\
-                                                                (i, i-1)
-        decl=pytmpl[procv0]%(lprocname+"_V",comment,raise_exception,
-                                param_loop,package_name,procname,plist2)
+                param_loop+="            dict['%d']=parmlist[i][%d]\n" % (i, i-1)
+        decl=pytmpl[procv0]%(lprocname+"_V",comment,raise_exception,param_loop,package_name,procname,plist2)
         self.println(decl)
 
-    def doprocs(self,package_name):
+    def doprocs(self,owner,package_name):
         """process all procs"""
-        procs=self.getprocedures(package_name)
+        procs=self.getprocedures(owner,package_name)
         for p in procs:
-            if self.isfunc(p,package_name):
-                self.dofunc1(p,package_name)
+            if self.isfunc(owner,p,package_name):
+                self.dofunc1(owner,p,package_name)
             else:
-                self.doproc1(p,package_name)
-                self.doprocv(p,package_name)
+                self.doproc1(owner,p,package_name)
+                self.doprocv(owner,p,package_name)
 
-    def dofunc1(self,funcname, package_name):
+    def dofunc1(self,owner,funcname, package_name):
         """process one func"""
         lfuncname=funcname.lower()
-        oraretype,retype=self.getpyfunctype(funcname)
-        parms=self.getparms(funcname,package_name)
-        arraytype=self.getarrayparms(funcname,package_name)
+        oraretype,retype=self.getpyfunctype(owner,funcname)
+        parms=self.getparms(owner,funcname,package_name)
+        arraytype=self.getarrayparms(owner,funcname,package_name)
         if self.memberdocs.has_key(lfuncname):
             comment=self.memberdocs[lfuncname]
         else:
             comment= "        (No doc string for this function)\n"
-            comment+="        (see orapig docs for how to do this)"
+            comment+="        (orapig --helpfmt for more info)"
         if len(parms)==0:
             plist1=''
             plist2=''
@@ -472,18 +454,24 @@ class PyTrans(Trans):
             decl=pytmpl[func0]%(lfuncname,plist1,comment,alist,
                             package_name,funcname,retype,plist2)
         else:
-            decl=pytmpl[func1]%(lfuncname,plist1,comment,alist,
-                                                              oraretype)
+            decl=pytmpl[func1]%(lfuncname,plist1,comment,alist,oraretype)
             
         self.println(decl)
 
     def doclass(self,package_name):
         """process one class"""
-        classname = package_name.capitalize()
-        doctext=self.getdoc(package_name)
-        if self.pkgexists(package_name):
+        curs = self.conn.cursor()
+        synonym = package_name
+        _, _, owner, realname, part2, dblink, part1_type, object_number = \
+             curs.callproc("DBMS_UTILITY.NAME_RESOLVE", (package_name, 1, " "*30, " "*30, " "*30, " "*30, 0, 0))
+        if synonym == realname and self.conn.username.upper() == owner:
+            synonym = None
+        classname = (synonym or package_name).capitalize()
+        assert part2 is None
+        doctext=self.getdoc(synonym, owner, realname)
+        if True: # if self.pkgexists(package_name):
             self.println(pytmpl[class0]%(classname,doctext))
-            self.doprocs(package_name)
+            self.doprocs(owner, realname)
         else:
             self.err('ERROR: package not found: %s'%(package_name))
 
@@ -491,34 +479,30 @@ class PyTrans(Trans):
 # main
 #-----------------------------------------------------------------------
 
-helptext="""orapig.py option pkg...
-
-questions? bugs? 
-docs and mailing lists:  http://code.google.com/p/orapig"""
-
 def main():
     """main program"""
 
-    p = optparse.OptionParser(usage=helptext)
+    p = optparse.OptionParser(usage="usage: %prog options pkg...")
     p.add_option("-C","--conn",action="store",type="string",dest="conn",
                  help="Database connection string")
-    p.add_option("-O","--output",action="store",type="string",
-                 dest="output",help="Output file")
+    p.add_option("-O","--output",action="store",type="string",dest="output",
+                 help="Output file")
     p.add_option("","--lang",action="store",type="string",dest="lang",
                  help="Language binding")
-    p.add_option("-P","--pass",action="store",type="string",
-                 dest="password",help="Database password")
-    p.add_option("","--dump",action="store_true",dest="dump",
-                 default=False,help="dump AST for debugging")
-    p.add_option("","--sys",action="store_true",dest="sys",
-                 default=False,help="connect as sysdba")
+    p.add_option("-P","--pass",action="store",type="string",dest="password",
+                 help="Database password")
+    p.add_option("","--dump",action="store_true",dest="dump",default=False,
+                 help="dump datastructures for debugging")
+    p.add_option("","--sys",action="store_true",dest="sys",default=False,
+                 help="connect as sysdba")
+    p.add_option("","--helpfmt",action="store_true",dest="helpfmt",
+                 default=False, help="show help for formatting")
     (opts,args) = p.parse_args()
 
     if not (opts.conn and args):
         p.print_help()
         sys.exit(1)
 
-    # if the user has not supplied a password, we prompt him for it
     oraconnre = re.compile("^([^/@]*)(/([^@]*))?(@(.*))?$")
     user,password,host=oraconnre.match(opts.conn).groups()[0::2]
     if opts.password:
@@ -545,6 +529,10 @@ def main():
 
     if opts.lang is None or opts.lang=="python" or opts.lang=='py':
         trans=PyTrans(conn,output)
+    elif opts.lang=='cxx':
+        trans=None
+    elif opt.lang=='rb':
+        trans=None
     else:
         print >>sys.stderr,'unsupported language:',opt.lang
         sys.exit(1)

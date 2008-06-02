@@ -20,12 +20,12 @@ def capitalized(curs):
     curs.execute('select unique keyword from keywords order by keyword')
     return [row[0].capitalize() for row in curs.fetchall()]
 
-import pixardb
+import cx_Oracle
 import keyword
 from pprint import pprint
 
 X('connect to the database')
-conn = pixardb.connection()
+conn = cx_Oracle.connect('apidemo_adm/oracle@tmpltest')
 curs=conn.cursor()
 
 X('instantiate a keyword object see its methods')
@@ -64,8 +64,9 @@ for r in iter:
     print r[0]
 
 X('list all the keywords, list consing version (good for xml-rpc, app server')
-allwords=k.all_words_L()
-print allwords
+##allwords=k.all_words()
+##print allwords
+print 'REVISIT THIS'
 
 X('list the keywords for asset 22')
 iter=k.get_keywords2(22)

@@ -30,8 +30,16 @@ export-samples: alltypes.py keyword.py tinysample.py
 %.py: 
 	$(PYTHON) ../orapig.py -C$(CONNSTR) $* > $*.py || (rm $*.py && exit 1) 
 
+test: unittests.py export-samples alltypes.py-regress tiny.py-regress keyword.py-regress
+	$(PYTHON) unittests.py -C$(CONNSTR)
+	@diff alltypes.py alltypes.py-regress
+	@diff tinysample.py tiny.py-regress
+	@diff keyword.py keyword.py-regress
+
+update-regress: export-samples
+	cp alltypes.py alltypes.py-regress
+	cp tinysample.py tiny.py-regress
+	cp keyword.py keyword.py-regress
+
 clean:
-	$(RM) alltypes.py keyword.py tinysample.py \*.pyc
-
-
-
+	$(RM) alltypes.py keyword.py tinysample.py *.pyc

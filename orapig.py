@@ -92,37 +92,41 @@ class Trans:
     def getarrayparms(self,owner,objname,package_name):
         """get the list of parameters of array type"""
         rv={}
-        self.curs.execute("""
-            select a.argument_name, b.data_type
-            from all_arguments a, all_arguments b
-            where a.object_name=:objname and b.object_name=:objname
-               and a.position=b.position
-               and a.data_type='PL/SQL TABLE'
-               and b.data_type!='PL/SQL TABLE'
-               and a.owner=:owner
-               and b.owner=:owner
-               and a.package_name=:package_name
-               and b.package_name=:package_name""",objname=objname,package_name=package_name,owner=owner)
+        self.curs.execute("""select argument_name, data_type from all_arguments
+                             where package_name=:package_name
+                             and owner=:owner
+                             and object_name=:objname
+                             order by sequence""",objname=objname,package_name=package_name,owner=owner)
+
+        current_arg = ""
+        pick_next = False
         for row in self.curs:
-            rv[row[0].lower()]=row[1]
+            if row[1] == "PL/SQL TABLE":
+                current_arg = row[0]
+                pick_next = True
+            if row[0] is None and pick_next:
+                rv[current_arg.lower()]=row[1]
+                pick_next = False
         return rv
 
     def getarrayindices(self,owner,objname,package_name):
         """get the list of parameters of array type"""
         rv={}
-        self.curs.execute("""
-            select a.position, b.data_type
-            from all_arguments a, all_arguments b
-            where a.object_name=:objname and b.object_name=:objname
-               and a.position=b.position
-               and a.data_type='PL/SQL TABLE'
-               and b.data_type!='PL/SQL TABLE'
-               and a.owner=:owner
-               and b.owner=:owner
-               and a.package_name=:package_name
-               and b.package_name=:package_name""",objname=objname.upper(),package_name=package_name,owner=owner)
+        self.curs.execute("""select argument_name, data_type, position from all_arguments
+                             where package_name=:package_name
+                             and owner=:owner
+                             and object_name=:objname
+                             order by sequence""",objname=objname,package_name=package_name,owner=owner)
+
+        position = 0
+        pick_next = False
         for row in self.curs:
-            rv[row[0]] = row[1]
+            if row[1] == "PL/SQL TABLE":
+                position = row[2]
+                pick_next = True
+            if row[0] is None and pick_next:
+                rv[position]=row[1]
+                pick_next = False
         return rv
 
     def hasoutputparms(self,owner,objname,package_name):
